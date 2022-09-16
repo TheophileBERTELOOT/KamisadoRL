@@ -1,7 +1,7 @@
 import pygame as pg
-
+import math
 from Tower import Tower
-
+import numpy as np
 
 class Board:
     def __init__(self,screenSizeX,screenSizeY):
@@ -12,59 +12,68 @@ class Board:
         self.colors = {'orange':'#CD6C37','pink':'#D85EC1','red':'#CD325A','green':'#029561','blue':'#137CCF','yellow':'#C9B91C','brown':'#472C17','purple':'#7949B5'}
         self.squareSizeX = int(self.screenSizeX/self.nbSquare)
         self.squareSizeY = int(self.screenSizeY / self.nbSquare)
+        self.p0Towers = []
+        self.p1Towers = []
         self.board = self.initBoardColor()
-        self.game = self.initGame()
+        self.currentTurn=0
+        self.playerTurn=0
+        self.selectedTower=None
+        self.lastTurnColor=None
+        self.initPlayers()
+
 
     def initBoardColor(self):
-        return [[self.colors['orange'],self.colors['blue'],self.colors['purple'],self.colors['pink'],self.colors['yellow'],self.colors['red'],self.colors['green'],self.colors['brown']],
-                [self.colors['red'],self.colors['orange'],self.colors['pink'],self.colors['green'],self.colors['blue'],self.colors['yellow'],self.colors['brown'],self.colors['purple']],
-                [self.colors['green'], self.colors['pink'], self.colors['orange'], self.colors['red'],self.colors['purple'], self.colors['brown'], self.colors['yellow'], self.colors['blue']],
-                [self.colors['pink'], self.colors['purple'], self.colors['blue'], self.colors['orange'],self.colors['brown'], self.colors['green'], self.colors['red'], self.colors['yellow']],
-                [self.colors['yellow'], self.colors['red'], self.colors['green'], self.colors['brown'],self.colors['orange'], self.colors['blue'], self.colors['purple'], self.colors['pink']],
-                [self.colors['blue'], self.colors['yellow'], self.colors['brown'], self.colors['purple'],self.colors['red'], self.colors['orange'], self.colors['pink'], self.colors['green']],
-                [self.colors['purple'], self.colors['brown'], self.colors['yellow'], self.colors['blue'],self.colors['green'], self.colors['pink'], self.colors['orange'], self.colors['red']],
-                [self.colors['brown'], self.colors['green'], self.colors['red'], self.colors['yellow'],self.colors['pink'], self.colors['purple'], self.colors['blue'], self.colors['orange']]]
+        return [['orange','blue','purple','pink','yellow','red','green','brown'],
+                ['red','orange','pink','green','blue','yellow','brown','purple'],
+                ['green', 'pink', 'orange', 'red','purple', 'brown', 'yellow', 'blue'],
+                ['pink', 'purple', 'blue', 'orange','brown', 'green', 'red', 'yellow'],
+                ['yellow', 'red', 'green', 'brown','orange', 'blue', 'purple', 'pink'],
+                ['blue', 'yellow', 'brown', 'purple','red', 'orange', 'pink', 'green'],
+                ['purple', 'brown', 'yellow', 'blue','green', 'pink', 'orange', 'red'],
+                ['brown', 'green', 'red', 'yellow','pink', 'purple', 'blue', 'orange']]
 
-    def initGame(self):
-        colors = self.colors.keys()
+    def initPlayers(self):
+
         p0Towers = []
         p1Towers = []
         p0Color = '#ffffff'
         p1Color = '#000000'
         i = 0
-        for color in self.board[0]:
-            p0Towers.append(Tower(0,color,p0Color,i,0))
+        colors = ['orange','blue','purple','pink','yellow','red','green','brown']
+        for color in colors:
+            p0Towers.append(Tower(0,self.colors[color],color,p0Color,i,0))
             i+=1
-        i-=1
-        for color in self.board[0]:
-            p1Towers.append(Tower(1, color, p1Color, i,7))
-            i -= 1
-        return [p0Towers,
-                [0 for _ in range(self.nbSquare)],
-                [0 for _ in range(self.nbSquare)],
-                [0 for _ in range(self.nbSquare)],
-                [0 for _ in range(self.nbSquare)],
-                [0 for _ in range(self.nbSquare)],
-                [0 for _ in range(self.nbSquare)],
-                p1Towers]
+        self.p0Towers = p0Towers
+        i=0
+        for color in colors.__reversed__():
+            p1Towers.append(Tower(1, self.colors[color],color, p1Color, i,7))
+            i += 1
+        self.p1Towers = p1Towers
+
 
     def displayPlayers(self):
-        for i in range(self.nbSquare):
-            for j in range(self.nbSquare):
-                square = self.game[j][i]
-                if square != 0:
-                    pg.draw.circle(self.screen, square.playerColor, (square.x*self.squareSizeX+self.squareSizeX/2,
-                                                               square.y*self.squareSizeY+self.squareSizeY/2),
-                                   self.squareSizeX/4)
-                    pg.draw.circle(self.screen, square.color, (square.x * self.squareSizeX + self.squareSizeX / 2,
-                                                               square.y * self.squareSizeY + self.squareSizeY / 2),
-                                   self.squareSizeX/6)
+        for tower in self.p0Towers+self.p1Towers:
+            if self.selectedTower != None:
+                if self.selectedTower.x == tower.x and self.selectedTower.y == tower.y:
+                    pg.draw.circle(self.screen, pg.Color('#FF0000'),
+                                   (tower.x * self.squareSizeX + self.squareSizeX / 2,
+                                    tower.y * self.squareSizeY + self.squareSizeY / 2),
+                                   self.squareSizeX /3)
+            pg.draw.circle(self.screen, tower.playerColor, (tower.x*self.squareSizeX+self.squareSizeX/2,
+                                                       tower.y*self.squareSizeY+self.squareSizeY/2),
+                           self.squareSizeX/4)
+            pg.draw.circle(self.screen, tower.color, (tower.x * self.squareSizeX + self.squareSizeX / 2,
+                                                       tower.y * self.squareSizeY + self.squareSizeY / 2),
+                           self.squareSizeX/6)
+
 
     def displayBoard(self):
         for i in range(self.nbSquare):
             for j in range(self.nbSquare):
-                color = pg.Color(self.board[j][i])
+                color = pg.Color(self.colors[self.board[j][i]])
                 pg.draw.rect(self.screen,color,pg.Rect(i*self.squareSizeX,j*self.squareSizeY,(i+1)*self.squareSizeX,(j+1)*self.squareSizeY))
+
+
 
 
     def displayAll(self):
@@ -72,3 +81,127 @@ class Board:
         self.displayBoard()
         self.displayPlayers()
         pg.display.flip()
+
+
+    def victoryCheck(self):
+        for tower in self.p0Towers:
+            if tower.y == 7:
+                print('player 1 WIN !!! Congrats !')
+                return 1
+        for tower in self.p1Towers:
+            if tower.y == 0:
+                print('player 0 WIN !!! Congrats !')
+                return 0
+        return -1
+
+
+    def handlePlayerClick(self,pos):
+        if self.selectedTower == None and self.currentTurn==0:
+            self.playerSelectTower(pos)
+        else:
+            self.playerSelectDestination(pos)
+
+    def findTowerPerCoordinates(self,playerIndex,x,y):
+        if playerIndex == 0:
+            for tower in self.p0Towers:
+                if tower.x == x and tower.y == y:
+                    return tower
+        else:
+            for tower in self.p1Towers:
+                if tower.x == x and tower.y == y:
+                    return tower
+        return None
+    def playerSelectTower(self,pos):
+        x = math.trunc(pos[0]/self.squareSizeX)
+        y = math.trunc(pos[1]/self.squareSizeY)
+        selectedSquare = self.findTowerPerCoordinates(self.playerTurn,x,y)
+        if selectedSquare != None:
+            if selectedSquare.indexPlayer == self.playerTurn:
+                self.selectedTower = selectedSquare
+                print(self.selectedTower)
+
+    def changeTurn(self):
+        if self.playerTurn == 0:
+            self.playerTurn = 1
+        else:
+            self.playerTurn = 0
+        self.currentTurn+=1
+
+    def isTHereATowerInDiagonale(self,tower,destY,destX):
+        difXGlobal = abs(destX-tower.x)
+        difYGlobal = abs(destY-tower.y)
+        if difYGlobal != difXGlobal :
+            return True
+
+        for checkTower in self.p0Towers+self.p1Towers:
+            if checkTower.x != tower.x or checkTower.y != tower.y :
+                difX = abs(checkTower.x-tower.x)
+                difY = abs(checkTower.y-tower.y)
+                if difY == difX:
+                    if tower.indexPlayer == 0:
+                        inFront = checkTower.y > tower.y
+                    else:
+                        inFront = checkTower.y< tower.y
+                    if inFront:
+                        checkLeftRight = np.sign(checkTower.x-tower.x) == np.sign(destX-tower.x)
+                        if difY<=difYGlobal and checkLeftRight:
+                            print(checkTower.x)
+                            print(checkTower.y)
+                            print(tower.x)
+                            print(tower.y)
+                            return True
+        return False
+
+    def isThereATowerInFront(self,tower,destY,destX):
+        if destX != tower.x:
+            return True
+        towardBot = True
+        if destY<tower.y:
+            towardBot = False
+        for checkTower in self.p0Towers+self.p1Towers:
+            if checkTower.x != tower.x or checkTower.y != tower.y:
+                if checkTower.x == tower.x:
+                    if towardBot and checkTower.y > tower.y and checkTower.y < destY:
+                        return True
+                    elif not towardBot and checkTower.y<tower.y and checkTower.y>destY:
+                        return True
+        return False
+
+    def NoRetreat(self,tower,destY):
+        if tower.indexPlayer == 0 and destY>tower.y:
+            return True
+        elif tower.indexPlayer == 1 and destY<tower.y:
+            return True
+        else:
+            return False
+
+
+    def squareIsEmpty(self,x,y):
+        for tower in self.p0Towers+self.p1Towers:
+            if tower.x == x and tower.y == y:
+                return False
+        return True
+
+    def selectLastTurnColorTower(self):
+        if self.playerTurn ==0:
+            checkTowers = self.p0Towers
+        else:
+            checkTowers = self.p1Towers
+        for tower in checkTowers:
+            if tower.colorKey == self.lastTurnColor:
+                self.selectedTower = tower
+
+    def playerSelectDestination(self,pos):
+        x = math.trunc(pos[0] / self.squareSizeX)
+        y = math.trunc(pos[1] / self.squareSizeY)
+        if self.squareIsEmpty(x,y):
+            if not self.isThereATowerInFront(self.selectedTower,y,x) or not self.isTHereATowerInDiagonale(self.selectedTower,y,x):
+                if self.NoRetreat(self.selectedTower,y):
+                    self.selectedTower.y = y
+                    self.selectedTower.x = x
+                    self.lastTurnColor = self.board[y][x]
+                    self.selectedTower = None
+                    self.changeTurn()
+                    if self.currentTurn > 0:
+                        self.selectLastTurnColorTower()
+
