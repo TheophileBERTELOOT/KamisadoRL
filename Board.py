@@ -118,7 +118,6 @@ class Board:
         if selectedSquare != None:
             if selectedSquare.indexPlayer == self.playerTurn:
                 self.selectedTower = selectedSquare
-                print(self.selectedTower)
 
     def changeTurn(self):
         if self.playerTurn == 0:
@@ -126,6 +125,34 @@ class Board:
         else:
             self.playerTurn = 0
         self.currentTurn+=1
+
+    def isAbleToMove(self,tower):
+        if tower.indexPlayer == 0:
+            coordToCheck = [(tower.y+1,tower.x),]
+            if tower.x-1 > 0:
+                coordToCheck.append(((tower.x-1,tower.y+1)))
+            if tower.x+1<self.nbSquare:
+                coordToCheck.append(((tower.x + 1, tower.y + 1)))
+        else:
+            coordToCheck = [(tower.x, tower.y - 1)]
+            if tower.x-1 > 0:
+                coordToCheck.append(((tower.x-1,tower.y-1)))
+            if tower.x+1<self.nbSquare:
+                coordToCheck.append(((tower.x + 1, tower.y -1)))
+
+        nbBlock = 0
+        for coord in coordToCheck:
+            alreadyCheckedThisOne = False
+            for testedTower in self.p0Towers+self.p1Towers:
+                if testedTower.x == coord[0] and testedTower.y == coord[1] and not alreadyCheckedThisOne:
+                    nbBlock+=1
+                    alreadyCheckedThisOne = True
+
+        if nbBlock == len(coordToCheck):
+            return False
+        else:
+            return True
+
 
     def isTHereATowerInDiagonale(self,tower,destY,destX):
         difXGlobal = abs(destX-tower.x)
@@ -145,10 +172,6 @@ class Board:
                     if inFront:
                         checkLeftRight = np.sign(checkTower.x-tower.x) == np.sign(destX-tower.x)
                         if difY<=difYGlobal and checkLeftRight:
-                            print(checkTower.x)
-                            print(checkTower.y)
-                            print(tower.x)
-                            print(tower.y)
                             return True
         return False
 
@@ -183,13 +206,18 @@ class Board:
         return True
 
     def selectLastTurnColorTower(self):
-        if self.playerTurn ==0:
+        if self.playerTurn == 0:
             checkTowers = self.p0Towers
         else:
             checkTowers = self.p1Towers
         for tower in checkTowers:
             if tower.colorKey == self.lastTurnColor:
                 self.selectedTower = tower
+        if not self.isAbleToMove(self.selectedTower):
+            self.changeTurn()
+            self.lastTurnColor = self.board[self.selectedTower.y][self.selectedTower.x]
+            self.selectLastTurnColorTower()
+
 
     def playerSelectDestination(self,pos):
         x = math.trunc(pos[0] / self.squareSizeX)
@@ -204,4 +232,6 @@ class Board:
                     self.changeTurn()
                     if self.currentTurn > 0:
                         self.selectLastTurnColorTower()
+                    else:
+                        self.lastTurnColor = self.board[self.selectedTower.y][self.selectedTower.x]
 
